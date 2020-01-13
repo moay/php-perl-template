@@ -1,0 +1,20 @@
+{
+    "name": "moay/php-perl-template",
+    "license": "GNU 2.0",
+    "authors": [
+        {
+            "name": "Juan R. Pozo",
+            "email": "jrpozo@conclase.net"
+        },
+        {
+            "name": "moay",
+            "email": "mv@moay.de"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "PhpPerlTemplate\\": "src/"
+        }
+    }
+}
