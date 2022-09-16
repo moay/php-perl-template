@@ -10,7 +10,7 @@ namespace PhpPerlTemplate;
 # A template system for PHP based on HTML::Template Perl Module                #
 # Version 0.3.1                                                                #
 # 9-NOV-2002                                                                   #
-# See file README.md for details                                                  #
+# See file README.md for details                                               #
 ################################################################################
 # Author: Juan R. Pozo, jrpozo@conclase.net                                    #
 # License: GNU GPL (included in file "LICENSE")                                #
@@ -31,10 +31,14 @@ namespace PhpPerlTemplate;
 // END DEBUG
 
 class Template {
-    // The array of options
+    /**
+    * @var mixed $options The array of options
+    */
     var $options;
 
-    // The tags that need a NAME attribute
+    /**
+    * @var array $need_names The tags that need a NAME attribute
+    */
     var $need_names = array(
         "TMPL_VAR"     => 1,
         "TMPL_LOOP"    => 1,
@@ -44,23 +48,62 @@ class Template {
     );
 
     // Vars for Parse phase
-    var $template     = NULL;    // the template file in memory
-    var $nodes        = array(); // the linearized parse tree
-    var $names        = array(); // the names of the variables that this template needs
-    var $depth        = 0;       // the inclusion depth of this template
+    /**
+    * @var mixed $template the template file in memory
+    */
+    var $template     = NULL;
+
+    /**
+    * @var array $nodes the linearized parse tree
+    */
+    var $nodes        = array();
+
+    /**
+    * @var array $names the names of the variables that this template needs
+    */
+    var $names        = array();
+
+    /**
+    * @var mixed $depth the inclusion depth of this template
+    */
+    var $depth        = 0;
 
     // Vars for AddParam phase
-    var $paramScope   = array(); // enclosing scopes of variable value as we add parameters
-    var $param        = NULL;    // the variables values assigned by the user
+    /**
+    * @var array $paramScope enclosing scopes of variable value as we add parameters
+    */
+    var $paramScope   = array();
+
+    /**
+    * @var mixed $param the variables values assigned by the user
+    */
+    var $param        = NULL;
 
     // Vars for Output phase
-    var $output       = NULL;    // the output string
-    var $totalPass    = array(); // Stack for loops: total passes of current loop
-    var $curPass      = array(); // Stack for loops: current pass of current loop
+    /**
+    * @var mixed $output the output string
+    */
+    var $output       = NULL;
 
+    /**
+    * @var array $totalPass Stack for loops: total passes of current loop
+    */
+    var $totalPass    = array();
+
+    /**
+    * @var array $curPass Stack for loops: current pass of current loop
+    */
+    var $curPass      = array();
+
+    /**
+    * @var string $version version number
+    */
     var $version = "0.3.1";
 
-    // The class constructor
+    /**
+    * @param mixed $options
+    * @return array
+    */
     function __construct($options)
     {
         // if the argument is a scalar, it is taken as the template file name
@@ -90,18 +133,38 @@ class Template {
             echo("<p>Current version number is " . $this->version . "</p>");
         }
         // END DEBUG
+
         $filename = $this->options['filename'];
-        if (!is_readable($filename)) {
-            trigger_error("Template->Template() : Template file \"".$filename."\" not found", E_USER_ERROR);
+
+        # seek filename from paths option
+        if($this->options["search_path_on_include"]){
+
+          $topping = [];
+          do {
+            $path = array_shift($this->options['paths'] );
+            $filename = $path."/".$this->options['filename'];
+            array_unshift ($topping, $path); #prepend path
+            
+          } while ($this->options['paths'] && !file_exists($filename) );
+
+          $this->options['paths'] = array_merge($topping, $this->options['paths']);
         }
+
         // BEGIN DEBUG
         if ($this->options['debug']) {
             echo("<p>Opening file ".$filename."</p>");
         }
         // END DEBUG
+
         $f = fopen($filename, "r");
-        $this->template = fread($f, filesize($filename));
-        fclose($f);
+        $fsize = filesize($filename);
+
+        if(is_readable($filename) && $f && $fsize){
+          $this->template = fread($f, $fsize);
+          fclose($f);
+        }else{
+          trigger_error("Template->Template() : Template file \"".$filename."\" not found", E_USER_ERROR);
+        }
         // BEGIN DEBUG
         if ($this->options['debug']) {
             echo("<p>File closed. ".filesize($filename)." bytes read into memory.</p>");
@@ -114,12 +177,16 @@ class Template {
             }
             // END DEBUG
             $this->Parse();
-            $this->defScope[] =& $this->names;
+            // $this->defScope[] =& $this->names; #lint found this unused elsewhere
             $this->paramScope[] =& $this->param;
         }
     }
 
-    // Fill in the $options array
+    /**
+    * Fill in the $options array
+    * @param array $options
+    * @return void
+    */
     function SetOptions($options)
     {
         // We first set the default values for all options
@@ -142,7 +209,7 @@ class Template {
 
         // and then the values provided by the user override those values
         foreach ($options as $key => $value) {
-            $this->options[strtolower($key)] = $value;
+            $this->options[strtolower((string)$key)] = $value;
         }
 
         // vanguard compatibility mode enforces die_on_bad_params = 0
@@ -156,12 +223,19 @@ class Template {
         }
     }
 
-    // This functions escapes regex metacharacters (outside square brackets)
+    /**
+    * This functions escapes regex metacharacters (outside square brackets)
+    * @param string $text
+    * @return string
+    */
     function EscapePREGText($text)
     {
         return strtr($text, array('\\'=>'\\\\', '/'=>'\/', '^'=>'\^', '$'=>'\$', '.'=>'\.', '['=>'\[', ']'=>'\]', '|'=>'\|', '('=>'\(', ')'=>'\)', '?'=>'\?', '*'=>'\*', '+'=>'\+', '{'=>'\{', '}'=>'\}', '%'=>'\%'));
     }
 
+    /**
+    * @return void
+    */
     function Parse()
     {
         // BEGIN DEBUG
@@ -245,7 +319,7 @@ class Template {
         $chunks = preg_split($regex, $this->template, -1, PREG_SPLIT_NO_EMPTY|PREG_SPLIT_DELIM_CAPTURE);
 
         // BEGIN DEBUG
-        if ($this->options['debug']) {
+        if ($this->options['debug'] && is_array($chunks) ) {
             echo("Template splitted, ".count($chunks)." chunks obtained<br>\n");
             echo("<pre>");
             foreach($chunks as $k=>$v) {
@@ -259,6 +333,7 @@ class Template {
         unset ($this->template);
 
         // Loop through chunks, filling up the linearized parse tree
+        if(is_array($chunks) )
         for ($i = 0; $i < count($chunks); $i++) {
             if (preg_match($regex2, $chunks[$i], $tag)) {
                 $which  = strtoupper($tag[1]);
@@ -275,11 +350,14 @@ class Template {
                 $var = array("name"=>NULL, "escape"=>NULL, "global"=>NULL, "default"=>NULL);
                 if (isset($tag[2])) {
                     $token = preg_split("/((?:[^\s=]+=)?(?:(?:\"[^\"]+\")|(?:\'[^\']+\')|(?:\S*)))/", trim($tag[2]), -1, PREG_SPLIT_NO_EMPTY|PREG_SPLIT_DELIM_CAPTURE);
+                    if(is_array($token) )
                     foreach($token as $tok) {
                         if (preg_match("/=/", $tok)) {
                             $t = preg_split("/\s*=\s*/", $tok, 3);
-                            preg_match("/(?:\"([^\"]*)\")|(?:\'([^\']*)\')|(\S*)/", $t[1], $match);
-                            $var[strtolower($t[0])] = max(isset($match[1])?$match[1]:"", isset($match[2])?$match[2]:"", isset($match[3])?$match[3]:"");
+                            if(is_array($t) ){
+                              preg_match("/(?:\"([^\"]*)\")|(?:\'([^\']*)\')|(\S*)/", $t[1], $match);
+                              $var[strtolower($t[0])] = max(isset($match[1])?$match[1]:"", isset($match[2])?$match[2]:"", isset($match[3])?$match[3]:"");
+                            }
                         } else if (!preg_match("/^\s*$/", $tok)) {
                             preg_match("/(?:\"([^\"]*)\")|(?:\'([^\']*)\')|(\S*)/", $tok, $match);
                             $var["name"] = max(isset($match[1])?$match[1]:"", isset($match[2])?$match[2]:"", isset($match[3])?$match[3]:"");
@@ -558,7 +636,7 @@ class Template {
 
                 default:
                     trigger_error("Template::Parse() : Unknown or unmatched TMPL construct at ".$this->options['filename']." : line ".$lineNumber, E_USER_ERROR);
-                    break;
+                    // break; // unreachable anyways
                 }
             } else {
                 // This is not a template tag. If it is not a delimiter, skip until next delimiter
@@ -588,6 +666,9 @@ class Template {
         }
     }
 
+    /**
+    * @return void
+    */
     function ListNodes()
     {
         echo("<b>Contents of linearized parse tree</b><br>");
@@ -602,6 +683,11 @@ class Template {
         echo("<pre>$b</pre>");
     }
 
+    /**
+    * @param mixed $arg
+    * @param mixed $value
+    * @return void
+    */
     function AddParam($arg, $value=NULL)
     {
         // BEGIN DEBUG
@@ -622,7 +708,7 @@ class Template {
                 trigger_error("Template::AddParam() : First argument must be a string", E_USER_ERROR);
             } else if (is_scalar($value)) {
                 // BEGIN DEBUG
-                if ($this->options['debug']) {
+                if ($this->options['debug'] && is_string($value) ) {
                     echo("<p>Attempting to set scalar value \"".htmlentities($value)."\" for variable \"$arg\".</p>");
                 }
                 // END DEBUG
@@ -637,7 +723,7 @@ class Template {
                 if (isset($this->names[$arg])) {
                     $this->paramScope[count($this->paramScope)-1][$arg] = $value;
                     // BEGIN DEBUG
-                    if ($this->options['debug']) {
+                    if ($this->options['debug'] && is_string($value) ) {
                         echo("<p>Value set: \"$arg\" = \"".htmlentities($value)."\".</p>");
                     }
                     // END DEBUG
@@ -716,6 +802,11 @@ class Template {
         }
     }
 
+    /**
+    * @param mixed $arg
+    * @param mixed $value
+    * @return void
+    */
     function SetValue($arg, $value)
     {
         // Like AddParam but exclusively for setting scalar values
@@ -724,7 +815,7 @@ class Template {
             trigger_error("Template::SetValue() : First argument must be a string", E_USER_ERROR);
         } else if (is_scalar($value)) {
             // BEGIN DEBUG
-            if ($this->options['debug']) {
+            if ($this->options['debug'] && is_string($value) ) {
                 echo("<p>Attempting to set scalar value \"".htmlentities($value)."\" for variable \"$arg\".</p>");
             }
             // END DEBUG
@@ -739,7 +830,7 @@ class Template {
             if (isset($this->names[$arg])) {
                 $this->paramScope[count($this->paramScope)-1][$arg] = $value;
                 // BEGIN DEBUG
-                if ($this->options['debug']) {
+                if ($this->options['debug'] && is_string($value) ) {
                     echo("<p>Value set: \"$arg\" = \"".htmlentities($value)."\".</p>");
                 }
                 // END DEBUG
@@ -752,6 +843,9 @@ class Template {
         }
     }
 
+    /**
+    * @return string
+    */
     function Output()
     {
         // BEGIN DEBUG
@@ -781,6 +875,10 @@ class Template {
         return $this->output;
     }
 
+    /**
+    * @param int $n
+    * @return int
+    */
     function ProcessNode($n)
     {
         // BEGIN DEBUG
@@ -788,7 +886,7 @@ class Template {
             echo("Processing node $n of type ".$this->nodes[$n]->type." <code>[".htmlentities($this->nodes[$n]->name)."]</code><br>\n");
         }
         // END DEBUG
-
+        $value = "";
         $node = $this->nodes[$n];
         switch ($node->type) {
         case "MARKUP":
@@ -803,17 +901,18 @@ class Template {
                     $value = count($this->paramScope[count($this->paramScope)-1][$node->name]);
                 }
                 // BEGIN DEBUG
-                if ($this->options['debug']) {
+                if ($this->options['debug'] && is_string($value) ) {
                     echo("Variable <code>".$node->name."</code> is defined in current scope with value <code>".htmlentities($value)."</code>.<br>\n");
                 }
                 // END DEBUG
-                if (!strcmp($node->escape, "HTML")) {
-                    $this->output .= htmlspecialchars($value);
-                } else if (!strcmp($node->escape, "URL")) {
-                    $this->output .= htmlentities(urlencode($value));
-                } else {
-                    $this->output .= $value;
-                }
+                if(is_string($value) ) # for lint checking
+                  if (!strcmp($node->escape, "HTML")) {
+                      $this->output .= htmlspecialchars($value);
+                  } else if (!strcmp($node->escape, "URL")) {
+                      $this->output .= htmlentities(urlencode($value));
+                  } else {
+                      $this->output .= $value;
+                  }
             } else if ($node->default !== NULL) {
                 // BEGIN DEBUG
                 if ($this->options['debug']) {
@@ -841,17 +940,18 @@ class Template {
                         $value = count($this->paramScope[$lvl][$node->name]);
                     }
                     // BEGIN DEBUG
-                    if ($this->options['debug']) {
+                    if ($this->options['debug'] && is_string($value) ) {
                         echo("Found variable in scope depth $lvl with value <code>".htmlentities($value)."</code><br>\n");
                     }
                     // END DEBUG
-                    if (!strcmp($node->escape, "HTML")) {
-                        $this->output .= htmlentities($value);
-                    } else if (!strcmp($node->escape, "URL")) {
-                        $this->output .= htmlentities(urlencode($value));
-                    } else {
-                        $this->output .= $value;
-                    }
+                    if(is_string($value) ) # for lint checking
+                      if (!strcmp($node->escape, "HTML")) {
+                          $this->output .= htmlentities($value);
+                      } else if (!strcmp($node->escape, "URL")) {
+                          $this->output .= htmlentities(urlencode($value));
+                      } else {
+                          $this->output .= $value;
+                      }
                 }
                 // BEGIN DEBUG
                 else if ($this->options['debug']) {
@@ -983,6 +1083,7 @@ class Template {
                 echo("Entering IF/UNLESS branch<br>\n");
             }
             // END DEBUG
+            $cond = 0;
             $else = $node->else;
             if (isset($this->paramScope[count($this->paramScope)-1][$node->name])) {
                 // BEGIN DEBUG
@@ -1024,7 +1125,6 @@ class Template {
                     }
                     // END DEBUG
                 } else {
-                    $cond = 0;
                     // BEGIN DEBUG
                     if ($this->options['debug']) {
                         echo("Variable not found, condition is false<br>\n");
@@ -1032,7 +1132,6 @@ class Template {
                     // END DEBUG
                 }
             } else {
-                $cond = 0;
                 // BEGIN DEBUG
                 if ($this->options['debug']) {
                     echo("Variable not found, condition is false<br>\n");
@@ -1122,8 +1221,12 @@ class Template {
                 return $node->jumpTo;
             }
         }
+        return $n; # default for linting
     }
 
+    /**
+     * @return void
+     */
     function EchoOutput()
     {
         $this->Output();
@@ -1133,17 +1236,29 @@ class Template {
     // ResetParams() and ResetOutput() can be useful when processing the same template with new
     // variable values, without repeating the Parse phase.
 
+    /**
+     * @return void
+     */
     function ResetParams()
     {
         $this->param = array();
     }
 
+    /**
+     * @return void
+     */
     function ResetOutput()
     {
         $this->output = NULL;
     }
 
-    function SaveCompiled($outputdir = NULL, $overwrite = 0) {
+    /**
+    * @param mixed $outputdir
+    * @param mixed $overwrite
+    * @return mixed
+    */
+    function SaveCompiled($outputdir = NULL, $overwrite = 0)
+    {
         if ($outputdir === NULL) {
             $outputdir = dirname($this->options['filename']);
         }
@@ -1156,25 +1271,61 @@ class Template {
                 trigger_error("Template::SaveCompiled() - File " . $output . " already exists, cannot write compiled template", E_USER_ERROR);
             } else {
                 $f = fopen($output, "w");
-                fwrite($f, serialize($this));
-                fclose($f);
+                if($f){
+                  fwrite($f, serialize($this));
+                  fclose($f);
+                }
                 return realpath($output);
             }
         }
-        return NULL; // should never arrive here anyway...
+        // return NULL; // unreachable anyways
     }
 }
 
 class Node
 {
-    var $type    = NULL; // Current types: MARKUP, VAR, IF/ContextIF, UNLESS/ContextUNLESS, LOOP
-    var $name    = NULL; // Variable name, or markup value
-    var $escape  = NULL; // Current types: HTML, URL or NULL
-    var $global  = NULL; // Set to 1 if GLOBAL attribute is set for this node, NULL otherwise
-    var $default = NULL; // Default value
+    /**
+    * @var mixed $type Current types: MARKUP, VAR, IF/ContextIF, UNLESS/ContextUNLESS, LOOP
+    */
+    var $type    = NULL;
+
+    /**
+    * @var mixed $name Variable name, or markup value
+    */
+    var $name    = NULL;
+
+    /**
+    * @var mixed $escape Current types: HTML, URL or NULL
+    */
+    var $escape  = NULL;
+
+    /**
+    * @var mixed $global Set to 1 if GLOBAL attribute is set for this node, NULL otherwise
+    */
+    var $global  = NULL;
+
+    /**
+    * @var mixed $default Default value
+    */
+    var $default = NULL;
+
+    /**
+    * @var mixed $jumpTo
+    */
     var $jumpTo  = NULL;
+
+    /**
+    * @var mixed $else
+    */
     var $else    = NULL;
 
+    /**
+    * @param mixed $type Current types: MARKUP, VAR, IF/ContextIF, UNLESS/ContextUNLESS, LOOP
+    * @param mixed $name Variable name, or markup value
+    * @param mixed $global Set to 1 if GLOBAL attribute is set for this node, NULL otherwise
+    * @param mixed $escape Current types: HTML, URL or NULL
+    * @param mixed $default Default value
+    */
     function __construct($type, $name, $global=NULL, $escape=NULL, $default=NULL)
     {
         $this->type    = $type;
@@ -1185,13 +1336,22 @@ class Node
     }
 }
 
-function &LoadCompiledTemplate($filename) {
+/**
+* @param string $filename Default value
+* @return mixed
+*/
+function &LoadCompiledTemplate($filename)
+{
     if (!is_readable($filename)) {
         trigger_error("LoadCompiledTemplate() - Cannot read file " . $filename, E_USER_ERROR);
     } else {
+        $data = false;
         $f = fopen($filename, "r");
-        $data = fread($f, filesize($filename));
-        fclose($f);
-        return unserialize($data);
+        $fsize = filesize($filename);
+        if($f && $fsize){
+          $data = fread($f, $fsize);
+          fclose($f);
+        }
+        return $data ? unserialize($data) : false;
     }
 }
