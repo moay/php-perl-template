@@ -61,7 +61,7 @@ class Template {
     var $version = "0.3.1";
 
     // The class constructor
-    function Template($options)
+    function __construct($options)
     {
         // if the argument is a scalar, it is taken as the template file name
         // otherwise we take it as an associative array of option=>value pairs
@@ -363,12 +363,12 @@ class Template {
                     // END DEBUG
                     if (in_array($name, array('__pass__', '__passtotal__', '__counter__'))) {
                         if (count($inLoop)) {
-                            $this->nodes[] =& new Node("ContextVAR", strtolower($name));
+                            $this->nodes[] = new Node("ContextVAR", strtolower($name));
                         } else {
                             trigger_error("Template::Parse() : Found context VAR tag outside of LOOP, at ".$this->options['filename']." : line ".$lineNumber, E_USER_ERROR);
                         }
                     } else {
-                        $this->nodes[] =& new Node("VAR", $name, $escape, $global, $default);
+                        $this->nodes[] = new Node("VAR", $name, $escape, $global, $default);
                         $this->names[$name] = 1;
                     }
                     // BEGIN DEBUG
@@ -385,7 +385,7 @@ class Template {
                         echo("Adding LOOP node<br>\n");
                     }
                     // END DEBUG
-                    $this->nodes[] =& new Node("LOOP", $name, NULL, $global);
+                    $this->nodes[] = new Node("LOOP", $name, NULL, $global);
                     $inLoop[] = count($this->nodes)-1;
                     $curType[] = "LOOP";
                     $this->names[$name] = 1;
@@ -426,12 +426,12 @@ class Template {
                     // END DEBUG
                     if (in_array($name, array('__first__', '__odd__', '__inner__', '__last__'))) {
                         if (count($inLoop)) {
-                            $this->nodes[] =& new Node("ContextIF", strtolower($name));
+                            $this->nodes[] = new Node("ContextIF", strtolower($name));
                         } else {
                             trigger_error("Template::Parse() : Found context IF/UNLESS tag outside of LOOP, at ".$this->options['filename']." : line ".$lineNumber, E_USER_ERROR);
                         }
                     } else {
-                        $this->nodes[] =& new Node("IF", $name, NULL, $global);
+                        $this->nodes[] = new Node("IF", $name, NULL, $global);
                         $this->names[$name] = 1;
                     }
                     $inIf[] = count($this->nodes)-1;
@@ -472,9 +472,9 @@ class Template {
                     }
                     // END DEBUG
                     if (in_array(strtolower($name), array('__first__', '__odd__', '__inner__', '__last__'))) {
-                        $this->nodes[] =& new Node("ContextUNLESS", strtolower($name));
+                        $this->nodes[] = new Node("ContextUNLESS", strtolower($name));
                     } else {
-                        $this->nodes[] =& new Node("UNLESS", $name, NULL, $global);
+                        $this->nodes[] = new Node("UNLESS", $name, NULL, $global);
                         $this->names[$name] = 1;
                     }
                     $inUnless[] = count($this->nodes)-1;
@@ -572,7 +572,7 @@ class Template {
                 if ($this->options['strict'] && preg_match("/".$delim."\/?[Tt][Mm][Pp][Ll]_/", $chunks[$i])) {
                     trigger_error("Template::Parse() : Syntax error in &lt;TMPL_*&gt; tag at " . $this->options['filename'] . " : line " . $lineNumber, E_USER_ERROR);
                 }
-                $this->nodes[] =& new Node("MARKUP", $chunks[$i]);
+                $this->nodes[] = new Node("MARKUP", $chunks[$i]);
                 // BEGIN DEBUG
                 if ($this->options['debug']) {
                     $this->ListNodes();
@@ -1175,7 +1175,7 @@ class Node
     var $jumpTo  = NULL;
     var $else    = NULL;
 
-    function Node($type, $name, $global=NULL, $escape=NULL, $default=NULL)
+    function __construct($type, $name, $global=NULL, $escape=NULL, $default=NULL)
     {
         $this->type    = $type;
         $this->name    = $name;
