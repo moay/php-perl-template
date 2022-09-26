@@ -397,6 +397,11 @@ class Template {
                     $name = strtolower($name);
                 }
 
+                // set names as array for logging line occurences
+                if(!isset($this->names[$name]) ){
+                  $this->names[$name] = [];
+                }
+
                 // BEGIN DEBUG
                 if ($this->options['debug']) {
                     echo("<b>Final values:</b><br>\n");
@@ -447,7 +452,7 @@ class Template {
                         }
                     } else {
                         $this->nodes[] = new Node("VAR", $name, $escape, $global, $default);
-                        $this->names[$name] = 1;
+                        $this->names[$name][] = $lineNumber;
                     }
                     // BEGIN DEBUG
                     if ($this->options['debug']) {
@@ -466,7 +471,7 @@ class Template {
                     $this->nodes[] = new Node("LOOP", $name, NULL, $global);
                     $inLoop[] = count($this->nodes)-1;
                     $curType[] = "LOOP";
-                    $this->names[$name] = 1;
+                    $this->names[$name][] = $lineNumber;
                     // BEGIN DEBUG
                     if ($this->options['debug']) {
                         echo("LOOP node added<br>\n");
@@ -510,7 +515,7 @@ class Template {
                         }
                     } else {
                         $this->nodes[] = new Node("IF", $name, NULL, $global);
-                        $this->names[$name] = 1;
+                        $this->names[$name][] = $lineNumber;
                     }
                     $inIf[] = count($this->nodes)-1;
                     $curType[] = "IF";
@@ -553,7 +558,7 @@ class Template {
                         $this->nodes[] = new Node("ContextUNLESS", strtolower($name));
                     } else {
                         $this->nodes[] = new Node("UNLESS", $name, NULL, $global);
-                        $this->names[$name] = 1;
+                        $this->names[$name][] = $lineNumber;
                     }
                     $inUnless[] = count($this->nodes)-1;
                     $curType[] = "UNLESS";
