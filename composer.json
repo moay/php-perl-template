@@ -11,18 +11,21 @@
             "email": "mv@moay.de"
         }
     ],
-    "require": {},
     "autoload": {
         "psr-4": {
             "PhpPerlTemplate\\": "src/"
         }
     },
     "require-dev": {
-        "phpstan/phpstan": "^1.8"
+        "phpstan/phpstan": "^1.8",
+        "phpunit/phpunit": "^9.5"
     },
     "scripts": {
       "lint": [
         "vendor/bin/phpstan analyse src --memory-limit=1G --debug"
+      ],
+      "phpunit": [
+        "vendor/bin/phpunit tests"
       ]
   }
 }
